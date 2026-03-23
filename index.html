@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>CA Final Tracker</title>
+<script type="module">
+  // Firebase is loaded as module — expose to global for legacy script below
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAlQM-YvBpT2i-AUHCN5_TCIH-CCJOnGzc",
+    authDomain: "ca-tracker-8c765.firebaseapp.com",
+    databaseURL: "https://ca-tracker-8c765-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "ca-tracker-8c765",
+    storageBucket: "ca-tracker-8c765.firebasestorage.app",
+    messagingSenderId: "527158900792",
+    appId: "1:527158900792:web:c9fbe16a2fc11624668ecd",
+    measurementId: "G-GLS9JVSG8B"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const dataRef = ref(db, 'caFinalTracker');
+
+  // Expose to global scope for the main script
+  window._fbSet = (data) => set(dataRef, data);
+  window._fbOnValue = (cb) => onValue(dataRef, (snap) => cb(snap.val()));
+  window._fbReady = true;
+
+  // Signal that Firebase is ready
+  document.dispatchEvent(new Event('firebaseReady'));
+</script>
+<style>
+:root{--bg:#f8fafc;--card:#fff;--border:#e2e8f0;--text:#1e293b;--muted:#64748b;--accent:#2563eb;--accent-light:#dbeafe;--success:#059669;--success-light:#d1fae5;--danger:#dc2626;--danger-light:#fee2e2;--warning:#d97706;--warning-light:#fef3c7;--radius:10px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+.app-header{background:#1e293b;color:white;padding:14px 16px;position:sticky;top:0;z-index:100}
+.app-header h1{font-size:16px;font-weight:600}
+.app-header .sub-title{font-size:11px;color:#94a3b8;margin-top:2px}
+.subject-tabs{display:flex;overflow-x:auto;background:#1e293b;padding:0 12px 10px;gap:6px}
+.subject-tabs::-webkit-scrollbar{display:none}
+.s-tab{padding:6px 14px;border-radius:20px;border:1.5px solid #475569;color:#94a3b8;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;background:transparent}
+.s-tab.active{background:white;color:#1e293b;border-color:white}
+.phase-bar{display:flex;margin:12px 12px 0;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border)}
+.phase-btn{flex:1;padding:9px;text-align:center;font-size:13px;font-weight:600;cursor:pointer;background:white;color:var(--muted);border:none}
+.phase-btn.active{background:var(--accent);color:white}
+.setup-panel{margin:12px;background:var(--card);border-radius:var(--radius);border:1px solid var(--border);padding:14px}
+.setup-panel h3{font-size:13px;font-weight:600;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px}
+.setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.setup-field label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:500}
+.setup-field input{width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:white}
+.setup-field input:focus{outline:none;border-color:var(--accent)}
+.full-width{grid-column:1/-1}
+.progress-bar-wrap{height:8px;background:var(--border);border-radius:99px;overflow:hidden;margin-top:8px}
+.progress-bar-fill{height:100%;border-radius:99px;background:var(--success);transition:width .4s}
+.progress-label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:4px}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;text-align:center}
+.stat-card .sv{font-size:20px;font-weight:700;color:var(--accent)}
+.stat-card .sl{font-size:10px;color:var(--muted);margin-top:2px;font-weight:500;text-transform:uppercase}
+.cal-section{margin:12px}
+.cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.cal-nav button{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer;color:var(--text)}
+.cal-nav h2{font-size:15px;font-weight:700}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-dow{text-align:center;font-size:10px;font-weight:700;color:var(--muted);padding:4px 0;text-transform:uppercase}
+.cal-day{border-radius:8px;padding:5px 4px;min-height:62px;background:var(--card);border:1px solid var(--border);cursor:pointer;display:flex;flex-direction:column}
+.cal-day.empty{background:transparent;border-color:transparent;cursor:default;pointer-events:none}
+.cal-day.today{border-color:var(--accent);border-width:2px}
+.cal-day.done{background:var(--success-light);border-color:#6ee7b7}
+.cal-day.missed{background:var(--danger-light);border-color:#fca5a5}
+.cal-day.partial{background:var(--warning-light);border-color:#fcd34d}
+.cal-day.has-target{background:#f0f9ff;border-color:#bae6fd}
+.cal-day.no-target{background:var(--card);opacity:.4;pointer-events:none}
+.day-num{font-size:11px;font-weight:700;color:var(--muted)}
+.cal-day.today .day-num{color:var(--accent)}
+.day-target{font-size:9px;color:var(--accent);font-weight:600;margin-top:2px;line-height:1.3}
+.day-logged{font-size:9px;color:var(--success);font-weight:600;margin-top:1px}
+.day-status{font-size:8px;font-weight:700;margin-top:auto;text-transform:uppercase}
+.done .day-status{color:var(--success)}.missed .day-status{color:var(--danger)}.partial .day-status{color:var(--warning)}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:flex-end}
+.modal-overlay.open{display:flex}
+.modal-box{background:white;border-radius:18px 18px 0 0;padding:20px 16px 36px;width:100%;max-height:85vh;overflow-y:auto}
+.modal-handle{width:40px;height:4px;background:var(--border);border-radius:99px;margin:0 auto 16px}
+.modal-box h3{font-size:16px;font-weight:700;margin-bottom:4px}
+.modal-sub{font-size:12px;color:var(--muted);margin-bottom:16px}
+.modal-field{margin-bottom:14px}
+.modal-field label{display:block;font-size:12px;color:var(--muted);font-weight:600;margin-bottom:6px}
+.modal-field input{width:100%;padding:12px;border:1.5px solid var(--border);border-radius:10px;font-size:22px;color:var(--text);text-align:center;font-weight:700}
+.modal-field input:focus{outline:none;border-color:var(--accent)}
+.modal-info{background:var(--accent-light);border-radius:8px;padding:10px 12px;font-size:13px;color:#1d4ed8;margin-bottom:14px;line-height:1.6}
+.modal-calc{background:#f0fdf4;border:1px solid #6ee7b7;border-radius:8px;padding:10px 12px;font-size:13px;color:#065f46;margin-bottom:14px;font-weight:500}
+.modal-warn{background:var(--warning-light);border-radius:8px;padding:10px 12px;font-size:13px;color:#92400e;margin-bottom:14px}
+.btn-row{display:flex;gap:10px;margin-top:4px}
+.btn{flex:1;padding:13px;border-radius:10px;font-size:14px;font-weight:700;border:none;cursor:pointer}
+.btn-primary{background:var(--accent);color:white}
+.btn-secondary{background:var(--bg);color:var(--text);border:1.5px solid var(--border)}
+.completion-banner{margin:0 12px 12px;background:var(--accent-light);border-radius:var(--radius);padding:12px 14px;display:flex;justify-content:space-between;align-items:center}
+.completion-banner .cb-label{font-size:12px;color:#1d4ed8;font-weight:500}
+.completion-banner .cb-date{font-size:15px;font-weight:700;color:#1d4ed8}
+.legend{display:flex;gap:10px;flex-wrap:wrap;margin:0 12px 10px}
+.leg-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--muted);font-weight:500}
+.leg-dot{width:10px;height:10px;border-radius:3px}
+.hint{font-size:11px;color:var(--muted);margin-top:4px;font-style:italic}
+.qpc-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.qpc-row span{font-size:13px;color:var(--muted);min-width:80px}
+.qpc-row input{flex:1;padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;color:var(--text);background:white}
+/* Question Bank - Calendar Style */
+.qb-no-data{text-align:center;padding:30px;color:var(--muted);font-size:13px}
+.qb-header-panel{margin:12px;background:var(--card);border-radius:var(--radius);border:1px solid var(--border);padding:14px}
+.qb-header-panel h3{font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.qb-legend{display:flex;gap:8px;flex-wrap:wrap;margin:0 12px 10px}
+.qb-leg{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;color:var(--text)}
+.qb-leg-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+.qb-cal-section{margin:12px}
+.qb-cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.qb-cal-nav button{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer;color:var(--text)}
+.qb-cal-nav button:disabled{opacity:.35;cursor:default}
+.qb-cal-nav h2{font-size:15px;font-weight:700;text-align:center}
+.qb-cal-nav .qb-nav-sub{font-size:10px;color:var(--muted);font-weight:500;text-align:center;margin-top:2px}
+.qb-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.qb-cell{border-radius:8px;padding:5px 4px;min-height:62px;background:var(--card);border:1.5px solid var(--border);display:flex;flex-direction:column;position:relative;cursor:pointer}
+.qb-cell.empty{background:transparent;border-color:transparent;pointer-events:none}
+.qb-cell-num{font-size:11px;font-weight:700;color:var(--muted)}
+.qb-cell-tag{font-size:8px;font-weight:700;margin-top:3px;padding:2px 3px;border-radius:4px;line-height:1.3;text-align:center}
+.qb-cell-sel{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.qb-summary{margin:0 12px 12px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px}
+.qb-summary h5{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
+.qb-bar-row{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.qb-bar-row .qb-bl{font-size:10px;font-weight:600;min-width:72px;white-space:nowrap}
+.qb-bar-bg{flex:1;height:7px;background:var(--border);border-radius:99px;overflow:hidden}
+.qb-bar-fill{height:100%;border-radius:99px;transition:width .4s}
+.qb-bar-count{font-size:10px;color:var(--muted);min-width:24px;text-align:right}
+</style>
+</head>
+<body>
+<div class="app-header">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start">
+    <div>
+      <h1>CA Final Tracker</h1>
+      <div class="sub-title">Lectures, Revision &amp; Question Bank</div>
+    </div>
+    <div id="syncStatus" style="font-size:10px;font-weight:600;padding:4px 8px;border-radius:99px;background:#334155;color:#94a3b8;margin-top:2px;white-space:nowrap">⏳ Connecting…</div>
+  </div>
+</div>
+<div class="subject-tabs" id="subjectTabs"></div>
+<div class="phase-bar">
+  <button class="phase-btn active" id="btnLec" onclick="switchPhase('lectures')">Lectures</button>
+  <button class="phase-btn" id="btnRev" onclick="switchPhase('revision')">Revision</button>
+  <button class="phase-btn" id="btnQB" onclick="switchPhase('questionbank')">Question Bank</button>
+</div>
+<div id="mainContent"></div>
+<div class="modal-overlay" id="dayModal">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <h3 id="modalTitle">—</h3>
+    <div class="modal-sub" id="modalSub">—</div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+<script>
+const SUBJECTS=['FR','AFM','Audit','DT','IDT'];
+const SUBJECT_COLORS={FR:'#2563eb',AFM:'#059669',Audit:'#dc2626',DT:'#7c3aed',IDT:'#d97706'};
+const MONTH_NAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DOW=['S','M','T','W','T','F','S'];
+
+function defaultState(){
+  const s={};
+  SUBJECTS.forEach(sub=>{
+    s[sub]={
+      lectures:{total:'',startLec:'',perDay:'',logs:{}},
+      revision:{numChapters:'',questionsPerChapter:[],questionsPerDay:'',logs:{}},
+      questionbank:{}
+    };
+  });
+  return s;
+}
+
+let state=defaultState();
+let activeSubject=SUBJECTS[0];
+let activePhase='lectures';
+let calYear=2025;
+let calMonth=0;
+let _saveTimeout=null;
+let _fbConnected=false;
+
+function setSyncStatus(text,color){
+  const el=document.getElementById('syncStatus');
+  if(el){el.textContent=text;el.style.color=color;}
+}
+
+function save(){
+  // Debounce: wait 600ms after last change before writing to Firebase
+  clearTimeout(_saveTimeout);
+  _saveTimeout=setTimeout(()=>{
+    if(window._fbSet){
+      setSyncStatus('⏫ Saving…','#fbbf24');
+      window._fbSet(state)
+        .then(()=>setSyncStatus('✅ Synced','#34d399'))
+        .catch(()=>setSyncStatus('❌ Error','#f87171'));
+    }
+  },600);
+}
+
+// Initialize Firebase listener once Firebase module is ready
+function initFirebase(){
+  setSyncStatus('⏳ Loading…','#94a3b8');
+  window._fbOnValue((val)=>{
+    if(val){
+      // Merge: ensure all subjects/phases exist (in case new ones added later)
+      const fresh=defaultState();
+      SUBJECTS.forEach(sub=>{
+        if(val[sub]){
+          fresh[sub].lectures=val[sub].lectures||fresh[sub].lectures;
+          fresh[sub].revision=val[sub].revision||fresh[sub].revision;
+          fresh[sub].questionbank=val[sub].questionbank||fresh[sub].questionbank;
+        }
+      });
+      state=fresh;
+    }
+    if(!_fbConnected){
+      _fbConnected=true;
+      setSyncStatus('✅ Synced','#34d399');
+      renderTabs();
+      renderMain();
+    } else {
+      // Remote update from another device — re-render
+      setSyncStatus('🔄 Updated','#60a5fa');
+      setTimeout(()=>setSyncStatus('✅ Synced','#34d399'),1500);
+      renderTabs();
+      renderMain();
+    }
+  });
+}
+
+if(window._fbReady){
+  initFirebase();
+} else {
+  document.addEventListener('firebaseReady',initFirebase);
+}
+function getLecData(){return state[activeSubject].lectures;}
+function getRevData(){return state[activeSubject].revision;}
+
+// DATE UTILS
+function dateKey(y,m,d){return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
+function parseDate(str){if(!str)return null;const p=str.split('-');return new Date(+p[0],+p[1]-1,+p[2]);}
+function todayKey(){const t=new Date();return dateKey(t.getFullYear(),t.getMonth(),t.getDate());}
+function addDaysToKey(str,n){const d=parseDate(str);d.setDate(d.getDate()+n);return dateKey(d.getFullYear(),d.getMonth(),d.getDate());}
+function fmtDate(str){if(!str)return '—';const d=parseDate(str);return d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});}
+
+// LECTURE SCHEDULE
+function buildLecSchedule(){
+  const p=getLecData();
+  const total=parseInt(p.total)||0;
+  const startLec=parseInt(p.startLec)||0;
+  const perDay=parseInt(p.perDay)||1;
+  const logs=p.logs||{};
+  const today=todayKey();
+  if(!total||!perDay)return{schedule:{},completionDate:null,done:startLec,pct:0,remaining:Math.max(0,total-startLec)};
+  const logDates=Object.keys(logs).sort();
+  const startDate=logDates.length>0&&logDates[0]<=today?logDates[0]:today;
+  const schedule={};
+  let lecPointer=startLec;
+  let currentDate=startDate;
+  let safety=2000;
+  while(lecPointer<total&&safety-->0){
+    const remaining=total-lecPointer;
+    const target=Math.min(perDay,remaining);
+    const isFuture=currentDate>today;
+    const isToday=currentDate===today;
+    const logged=logs[currentDate]!==undefined?parseInt(logs[currentDate]):null;
+    let status;
+    if(isFuture) status='upcoming';
+    else if(isToday&&logged===null) status='today';
+    else if(logged===null||logged===0) status='missed';
+    else if(logged>=target) status='done';
+    else status='partial';
+    schedule[currentDate]={targetStart:lecPointer+1,targetEnd:lecPointer+target,target,status,logged:logged!==null?logged:null};
+    if(isFuture||(isToday&&logged===null)) lecPointer+=target;
+    else lecPointer+=Math.max(0,logged!==null?logged:0);
+    currentDate=addDaysToKey(currentDate,1);
+  }
+  let done=startLec;
+  logDates.forEach(dk=>{if(dk<=today)done+=Math.max(0,parseInt(logs[dk])||0);});
+  done=Math.min(total,done);
+  const pct=total>0?Math.min(100,Math.round((done/total)*100)):0;
+  const remaining=Math.max(0,total-done);
+  const lastDay=Object.keys(schedule).sort().pop();
+  return{schedule,completionDate:lastDay||null,done,pct,remaining};
+}
+
+// REVISION SCHEDULE
+function buildRevSchedule(){
+  const p=getRevData();
+  const numChapters=parseInt(p.numChapters)||0;
+  const qpc=p.questionsPerChapter||[];
+  const qpd=parseInt(p.questionsPerDay)||1;
+  const logs=p.logs||{};
+  const today=todayKey();
+  if(!numChapters||!qpd)return{schedule:{},completionDate:null,totalQ:0,doneQ:0,pct:0,remaining:0};
+  const chapters=[];
+  for(let i=0;i<numChapters;i++) chapters.push({index:i+1,questions:parseInt(qpc[i])||0});
+  const totalQ=chapters.reduce((a,c)=>a+c.questions,0);
+  if(!totalQ)return{schedule:{},completionDate:null,totalQ:0,doneQ:0,pct:0,remaining:0};
+  const logDates=Object.keys(logs).sort();
+  const startDate=logDates.length>0&&logDates[0]<=today?logDates[0]:today;
+  const schedule={};
+  let qPointer=0;
+  let currentDate=startDate;
+  let safety=2000;
+  while(qPointer<totalQ&&safety-->0){
+    const remaining=totalQ-qPointer;
+    const target=Math.min(qpd,remaining);
+    const isFuture=currentDate>today;
+    const isToday=currentDate===today;
+    const logged=logs[currentDate]!==undefined?parseInt(logs[currentDate]):null;
+    // Find chapter for current qPointer
+    let cum=0,chapterIndex=1;
+    for(let i=0;i<chapters.length;i++){
+      if(qPointer<cum+chapters[i].questions){chapterIndex=i+1;break;}
+      cum+=chapters[i].questions;
+    }
+    let status;
+    if(isFuture) status='upcoming';
+    else if(isToday&&logged===null) status='today';
+    else if(logged===null||logged===0) status='missed';
+    else if(logged>=target) status='done';
+    else status='partial';
+    schedule[currentDate]={target,chapterIndex,qStart:qPointer+1,qEnd:qPointer+target,status,logged:logged!==null?logged:null};
+    if(isFuture||(isToday&&logged===null)) qPointer+=target;
+    else qPointer+=Math.max(0,logged!==null?logged:0);
+    currentDate=addDaysToKey(currentDate,1);
+  }
+  let doneQ=0;
+  logDates.forEach(dk=>{if(dk<=today)doneQ+=Math.max(0,parseInt(logs[dk])||0);});
+  doneQ=Math.min(totalQ,doneQ);
+  const pct=totalQ>0?Math.min(100,Math.round((doneQ/totalQ)*100)):0;
+  const remaining=Math.max(0,totalQ-doneQ);
+  const lastDay=Object.keys(schedule).sort().pop();
+  return{schedule,completionDate:lastDay||null,totalQ,doneQ,pct,remaining};
+}
+
+// TABS
+function renderTabs(){
+  document.getElementById('subjectTabs').innerHTML=SUBJECTS.map(s=>
+    `<button class="s-tab${s===activeSubject?' active':''}" onclick="switchSubject('${s}')">${s}</button>`
+  ).join('');
+}
+function switchSubject(s){activeSubject=s;renderTabs();renderMain();}
+function switchPhase(ph){
+  activePhase=ph;
+  document.getElementById('btnLec').classList.toggle('active',ph==='lectures');
+  document.getElementById('btnRev').classList.toggle('active',ph==='revision');
+  document.getElementById('btnQB').classList.toggle('active',ph==='questionbank');
+  renderMain();
+}
+
+// MAIN RENDER
+function renderMain(){
+  let html='';
+  if(activePhase==='lectures') html=renderLectures();
+  else if(activePhase==='revision') html=renderRevision();
+  else html=renderQuestionBank();
+  document.getElementById('mainContent').innerHTML=html;
+  attachSetupListeners();
+}
+
+function renderLectures(){
+  const p=getLecData();
+  const sc=SUBJECT_COLORS[activeSubject];
+  const sched=buildLecSchedule();
+  return `
+  <div class="setup-panel">
+    <h3>Setup — ${activeSubject} Lectures</h3>
+    <div class="setup-grid">
+      <div class="setup-field">
+        <label>Total lectures</label>
+        <input type="number" id="inp-total" value="${p.total}" placeholder="e.g. 75" inputmode="numeric">
+      </div>
+      <div class="setup-field">
+        <label>Already watched up to #</label>
+        <input type="number" id="inp-startLec" value="${p.startLec}" placeholder="e.g. 45" inputmode="numeric">
+      </div>
+      <div class="setup-field full-width">
+        <label>Lectures per day</label>
+        <input type="number" id="inp-perDay" value="${p.perDay}" placeholder="e.g. 3" inputmode="numeric">
+        <div class="hint">Calendar auto-fills from today. Tap a day to log how many you watched.</div>
+      </div>
+    </div>
+    ${sched.pct>0?`<div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${sched.pct}%"></div></div>
+    <div class="progress-label"><span>Watched ${sched.done} of ${p.total} lectures</span><span>${sched.pct}% done</span></div>`:''}
+  </div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="sv">${p.total||'—'}</div><div class="sl">Total</div></div>
+    <div class="stat-card"><div class="sv" style="color:${sc}">${sched.done}</div><div class="sl">Watched</div></div>
+    <div class="stat-card"><div class="sv" style="color:#dc2626">${sched.remaining}</div><div class="sl">Remaining</div></div>
+  </div>
+  ${sched.completionDate?`<div class="completion-banner"><div class="cb-label">Estimated completion</div><div class="cb-date">${fmtDate(sched.completionDate)}</div></div>`:''}
+  <div class="legend">
+    <div class="leg-item"><div class="leg-dot" style="background:#d1fae5;border:1px solid #6ee7b7"></div>Done</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#fee2e2;border:1px solid #fca5a5"></div>Missed</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#fef3c7;border:1px solid #fcd34d"></div>Partial</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#f0f9ff;border:1px solid #bae6fd"></div>Upcoming</div>
+  </div>
+  <div class="cal-section">${getCalHTML(sched.schedule,'lectures')}</div>`;
+}
+
+function renderRevision(){
+  const p=getRevData();
+  const sc=SUBJECT_COLORS[activeSubject];
+  const numChapters=parseInt(p.numChapters)||0;
+  const qpc=p.questionsPerChapter||[];
+  const sched=buildRevSchedule();
+  let qpcRows='';
+  for(let i=0;i<numChapters;i++){
+    qpcRows+=`<div class="qpc-row"><span>Chapter ${i+1}</span>
+      <input type="number" class="qpc-inp" data-ci="${i}" value="${qpc[i]||''}" placeholder="No. of questions" inputmode="numeric"></div>`;
+  }
+  return `
+  <div class="setup-panel">
+    <h3>Setup — ${activeSubject} Revision</h3>
+    <div class="setup-grid">
+      <div class="setup-field">
+        <label>Number of chapters</label>
+        <input type="number" id="inp-numChapters" value="${p.numChapters}" placeholder="e.g. 10" inputmode="numeric">
+      </div>
+      <div class="setup-field">
+        <label>Questions per day</label>
+        <input type="number" id="inp-revQpd" value="${p.questionsPerDay}" placeholder="e.g. 20" inputmode="numeric">
+      </div>
+    </div>
+    ${numChapters>0?`<div style="margin-top:12px"><div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:8px;text-transform:uppercase">Questions per chapter</div>${qpcRows}</div>`:''}
+    ${sched.totalQ>0?`<div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${sched.pct}%"></div></div>
+    <div class="progress-label"><span>${sched.doneQ} of ${sched.totalQ} questions done</span><span>${sched.pct}% done</span></div>`:''}
+  </div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="sv">${numChapters||'—'}</div><div class="sl">Chapters</div></div>
+    <div class="stat-card"><div class="sv" style="color:${sc}">${sched.doneQ}</div><div class="sl">Done</div></div>
+    <div class="stat-card"><div class="sv" style="color:#dc2626">${sched.remaining}</div><div class="sl">Remaining</div></div>
+  </div>
+  ${sched.completionDate?`<div class="completion-banner"><div class="cb-label">Estimated completion</div><div class="cb-date">${fmtDate(sched.completionDate)}</div></div>`:''}
+  <div class="legend">
+    <div class="leg-item"><div class="leg-dot" style="background:#d1fae5;border:1px solid #6ee7b7"></div>Done</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#fee2e2;border:1px solid #fca5a5"></div>Missed</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#fef3c7;border:1px solid #fcd34d"></div>Partial</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#f0f9ff;border:1px solid #bae6fd"></div>Upcoming</div>
+  </div>
+  <div class="cal-section">${getCalHTML(sched.schedule,'revision')}</div>`;
+}
+
+// CALENDAR
+function getCalHTML(schedule,phase){
+  return `<div class="cal-nav">
+    <button onclick="prevMonth()">&#8592;</button>
+    <h2>${MONTH_NAMES[calMonth]} ${calYear}</h2>
+    <button onclick="nextMonth()">&#8594;</button>
+  </div>${renderMonth(calYear,calMonth,schedule,phase)}`;
+}
+
+function renderMonth(year,month,schedule,phase){
+  const today=todayKey();
+  const firstDay=new Date(year,month,1).getDay();
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  let html=`<div class="cal-grid">`;
+  DOW.forEach(d=>{html+=`<div class="cal-dow">${d}</div>`;});
+  for(let i=0;i<firstDay;i++)html+=`<div class="cal-day empty"></div>`;
+  for(let d=1;d<=daysInMonth;d++){
+    const dk=dateKey(year,month,d);
+    const sd=schedule[dk];
+    const isToday=dk===today;
+    if(!sd){html+=`<div class="cal-day no-target"><div class="day-num">${d}</div></div>`;continue;}
+    let cls='cal-day';
+    if(isToday)cls+=' today';
+    if(sd.status==='done')cls+=' done';
+    else if(sd.status==='missed')cls+=' missed';
+    else if(sd.status==='partial')cls+=' partial';
+    else cls+=' has-target';
+    let targetLine='',logLine='',statusLine='';
+    if(phase==='lectures'){
+      targetLine=`<div class="day-target">L${sd.targetStart}–${sd.targetEnd}</div>`;
+      if(sd.logged!==null&&sd.logged!==undefined)logLine=`<div class="day-logged">done:${sd.logged}</div>`;
+    }else{
+      targetLine=`<div class="day-target" style="color:#7c3aed">Ch${sd.chapterIndex} Q${sd.qStart}-${sd.qEnd}</div>`;
+      if(sd.logged!==null&&sd.logged!==undefined)logLine=`<div class="day-logged">done:${sd.logged}</div>`;
+    }
+    if(sd.status==='done')statusLine=`<div class="day-status">Done</div>`;
+    else if(sd.status==='missed')statusLine=`<div class="day-status">Missed</div>`;
+    else if(sd.status==='partial')statusLine=`<div class="day-status">Partial</div>`;
+    html+=`<div class="${cls}" onclick="openDayModal('${dk}','${phase}')">
+      <div class="day-num">${d}</div>${targetLine}${logLine}${statusLine}
+    </div>`;
+  }
+  html+='</div>';
+  return html;
+}
+
+function prevMonth(){calMonth--;if(calMonth<0){calMonth=11;calYear--;}renderMain();}
+function nextMonth(){calMonth++;if(calMonth>11){calMonth=0;calYear++;}renderMain();}
+
+// SETUP LISTENERS
+function attachSetupListeners(){
+  const lp=getLecData();
+  const rp=getRevData();
+  [['inp-total','total',lp],['inp-startLec','startLec',lp],['inp-perDay','perDay',lp]].forEach(([id,key,obj])=>{
+    const el=document.getElementById(id);
+    if(el)el.addEventListener('change',()=>{obj[key]=el.value;save();renderMain();});
+  });
+  const numEl=document.getElementById('inp-numChapters');
+  if(numEl)numEl.addEventListener('change',()=>{
+    rp.numChapters=numEl.value;
+    const n=parseInt(numEl.value)||0;
+    if(!rp.questionsPerChapter)rp.questionsPerChapter=[];
+    while(rp.questionsPerChapter.length<n)rp.questionsPerChapter.push('');
+    rp.questionsPerChapter=rp.questionsPerChapter.slice(0,n);
+    save();renderMain();
+  });
+  const qpdEl=document.getElementById('inp-revQpd');
+  if(qpdEl)qpdEl.addEventListener('change',()=>{rp.questionsPerDay=qpdEl.value;save();renderMain();});
+  document.querySelectorAll('.qpc-inp').forEach(el=>{
+    el.addEventListener('change',()=>{
+      const ci=parseInt(el.dataset.ci);
+      if(!rp.questionsPerChapter)rp.questionsPerChapter=[];
+      rp.questionsPerChapter[ci]=el.value;
+      save();renderMain();
+    });
+  });
+}
+
+// DAY MODAL
+function openDayModal(dk,phase){
+  const today=todayKey();
+  const isPast=dk<today;
+  const isToday=dk===today;
+  const d=parseDate(dk);
+  const label=d.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('modalTitle').textContent=label;
+  let body='';
+
+  if(phase==='lectures'){
+    const sched=buildLecSchedule();
+    const sd=sched.schedule[dk];
+    if(!sd){document.getElementById('modalSub').textContent='No lecture scheduled';document.getElementById('modalBody').innerHTML=`<div class="btn-row"><button class="btn btn-secondary" onclick="closeModal()">Close</button></div>`;document.getElementById('dayModal').classList.add('open');return;}
+    const currentLogged=getLecData().logs[dk]!==undefined?getLecData().logs[dk]:'';
+    document.getElementById('modalSub').textContent=`Target: L${sd.targetStart}–${sd.targetEnd} (${sd.target} lectures)`;
+    body=`<div class="modal-calc">L${sd.targetStart} → L${sd.targetEnd} — ${sd.target} lectures today</div>
+      ${isPast||isToday?`<div class="modal-field">
+        <label>How many lectures did you watch?</label>
+        <input type="number" id="m-lec-logged" value="${currentLogged}" placeholder="e.g. ${sd.target}" inputmode="numeric" min="0">
+      </div>
+      <div class="hint" style="margin-bottom:12px;font-size:12px">Enter 0 if missed — shifts to tomorrow automatically.</div>
+      `:`<div class="modal-info">Upcoming day. Come back on ${fmtDate(dk)} to log.</div>`}
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        ${isPast||isToday?`<button class="btn btn-primary" onclick="saveLecLog('${dk}')">Save</button>`:''}
+      </div>`;
+
+  }else{
+    const sched=buildRevSchedule();
+    const sd=sched.schedule[dk];
+    if(!sd){document.getElementById('modalSub').textContent='No revision scheduled';document.getElementById('modalBody').innerHTML=`<div class="btn-row"><button class="btn btn-secondary" onclick="closeModal()">Close</button></div>`;document.getElementById('dayModal').classList.add('open');return;}
+    const currentLogged=getRevData().logs[dk]!==undefined?getRevData().logs[dk]:'';
+    document.getElementById('modalSub').textContent=`Chapter ${sd.chapterIndex} — Q${sd.qStart} to Q${sd.qEnd}`;
+    body=`<div class="modal-calc">Chapter ${sd.chapterIndex}: Q${sd.qStart} → Q${sd.qEnd} (${sd.target} questions)</div>
+      ${isPast||isToday?`<div class="modal-field">
+        <label>How many questions did you do today?</label>
+        <input type="number" id="m-rev-logged" value="${currentLogged}" placeholder="e.g. ${sd.target}" inputmode="numeric" min="0">
+      </div>
+      <div class="hint" style="margin-bottom:12px;font-size:12px">Enter 0 if missed — shifts to tomorrow automatically.</div>
+      `:`<div class="modal-info">Upcoming day. Come back on ${fmtDate(dk)} to log.</div>`}
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+        ${isPast||isToday?`<button class="btn btn-primary" onclick="saveRevLog('${dk}')">Save</button>`:''}
+      </div>`;
+  }
+
+  document.getElementById('modalBody').innerHTML=body;
+  document.getElementById('dayModal').classList.add('open');
+}
+
+function closeModal(){document.getElementById('dayModal').classList.remove('open');}
+
+function saveLecLog(dk){
+  const p=getLecData();
+  if(!p.logs)p.logs={};
+  const val=document.getElementById('m-lec-logged')?.value;
+  if(val!==''&&val!==undefined)p.logs[dk]=parseInt(val);
+  else delete p.logs[dk];
+  save();closeModal();renderMain();
+}
+
+function saveRevLog(dk){
+  const p=getRevData();
+  if(!p.logs)p.logs={};
+  const val=document.getElementById('m-rev-logged')?.value;
+  if(val!==''&&val!==undefined)p.logs[dk]=parseInt(val);
+  else delete p.logs[dk];
+  save();closeModal();renderMain();
+}
+
+document.getElementById('dayModal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+
+// QUESTION BANK
+const QB_OPTIONS=[
+  {value:'',    label:'—',         color:'#ffffff', textColor:'#94a3b8'},
+  {value:'T',   label:'Theory',    color:'#dbeafe', textColor:'#1d4ed8'},
+  {value:'P-E', label:'Prac·Easy', color:'#d1fae5', textColor:'#065f46'},
+  {value:'P-M', label:'Prac·Med',  color:'#fef3c7', textColor:'#92400e'},
+  {value:'P-H', label:'Prac·Hard', color:'#fee2e2', textColor:'#991b1b'},
+  {value:'P-L', label:'Prac·LDR',  color:'#ede9fe', textColor:'#5b21b6'},
+];
+const QB_OPT_MAP={};
+QB_OPTIONS.forEach(o=>{QB_OPT_MAP[o.value]=o;});
+
+let qbChapter=0;
+
+function getQBData(){
+  if(!state[activeSubject].questionbank)state[activeSubject].questionbank={};
+  return state[activeSubject].questionbank;
+}
+
+function prevQBChapter(){if(qbChapter>0){qbChapter--;renderMain();}}
+function nextQBChapter(){
+  const n=parseInt(getRevData().numChapters)||0;
+  if(qbChapter<n-1){qbChapter++;renderMain();}
+}
+
+function renderQuestionBank(){
+  const rp=getRevData();
+  const qb=getQBData();
+  const numChapters=parseInt(rp.numChapters)||0;
+  const qpc=rp.questionsPerChapter||[];
+  const sc=SUBJECT_COLORS[activeSubject];
+
+  if(!numChapters){
+    return `<div class="qb-no-data">
+      <div style="font-size:32px;margin-bottom:8px">📚</div>
+      <div style="font-weight:600;margin-bottom:4px">No chapters set up</div>
+      <div>First set the number of chapters in the Revision tab.</div>
+    </div>`;
+  }
+
+  if(qbChapter>=numChapters) qbChapter=numChapters-1;
+  if(qbChapter<0) qbChapter=0;
+  const ci=qbChapter;
+  const chTotal=parseInt(qpc[ci])||0;
+
+  // Overall counts
+  const counts={};
+  QB_OPTIONS.forEach(o=>{if(o.value)counts[o.value]=0;});
+  let totalTagged=0,totalQ=0;
+  for(let i=0;i<numChapters;i++){
+    const cq=parseInt(qpc[i])||0; totalQ+=cq;
+    for(let q=1;q<=cq;q++){const v=qb[`c${i}q${q}`]||'';if(v&&counts[v]!==undefined){counts[v]++;totalTagged++;}}
+  }
+  const overallPct=totalQ>0?Math.round((totalTagged/totalQ)*100):0;
+
+  // Chapter counts
+  let chTagged=0;
+  for(let q=1;q<=chTotal;q++){if(qb[`c${ci}q${q}`])chTagged++;}
+  const chPct=chTotal>0?Math.round((chTagged/chTotal)*100):0;
+
+  // Legend
+  const legend=QB_OPTIONS.filter(o=>o.value).map(o=>`
+    <div class="qb-leg">
+      <div class="qb-leg-dot" style="background:${o.color};border:1.5px solid ${o.textColor}55"></div>
+      ${o.label}
+    </div>`).join('');
+
+  // Calendar grid: 7 columns, Q1..QN fill left-to-right top-to-bottom
+  const COLS=7;
+  const totalCells=chTotal>0?Math.ceil(chTotal/COLS)*COLS:0;
+  let gridCells='';
+  for(let cell=0;cell<totalCells;cell++){
+    const qNum=cell+1;
+    if(qNum>chTotal){
+      gridCells+=`<div class="qb-cell empty"></div>`;
+    } else {
+      const key=`c${ci}q${qNum}`;
+      const val=qb[key]||'';
+      const opt=QB_OPT_MAP[val]||QB_OPT_MAP[''];
+      const optHtml=QB_OPTIONS.map(o=>`<option value="${o.value}"${o.value===val?' selected':''}>${o.label}</option>`).join('');
+      gridCells+=`<div class="qb-cell" style="background:${opt.color};border-color:${val?opt.textColor+'66':'var(--border)'}">
+        <div class="qb-cell-num" style="color:${val?opt.textColor:'var(--muted)'}">${qNum}</div>
+        ${val?`<div class="qb-cell-tag" style="background:${opt.textColor}20;color:${opt.textColor}">${opt.label}</div>`:''}
+        <select class="qb-cell-sel" data-chi="${ci}" data-q="${qNum}" onchange="saveQBCell(this)">${optHtml}</select>
+      </div>`;
+    }
+  }
+
+  // Summary bars (overall)
+  const summaryBars=QB_OPTIONS.filter(o=>o.value).map(o=>{
+    const pct=totalQ>0?Math.round((counts[o.value]/totalQ)*100):0;
+    return `<div class="qb-bar-row">
+      <span class="qb-bl" style="color:${o.textColor}">${o.label}</span>
+      <div class="qb-bar-bg"><div class="qb-bar-fill" style="width:${pct}%;background:${o.textColor}"></div></div>
+      <span class="qb-bar-count">${counts[o.value]}</span>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="qb-header-panel">
+    <h3>Question Bank — ${activeSubject}</h3>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Tap a question to assign its type &amp; difficulty</div>
+    ${totalQ>0?`<div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${overallPct}%;background:${sc}"></div></div>
+    <div class="progress-label"><span>Overall: ${totalTagged} of ${totalQ} tagged</span><span>${overallPct}%</span></div>`:''}
+  </div>
+  <div class="qb-legend">${legend}</div>
+  ${totalTagged>0?`<div class="qb-summary"><h5>Overall Breakdown</h5>${summaryBars}</div>`:''}
+  <div class="qb-cal-section">
+    <div class="qb-cal-nav">
+      <button onclick="prevQBChapter()" ${ci===0?'disabled':''}>&#8592;</button>
+      <div style="text-align:center">
+        <div style="font-size:15px;font-weight:700">Chapter ${ci+1}</div>
+        <div class="qb-nav-sub">${chTotal} questions &nbsp;·&nbsp; ${chPct}% tagged</div>
+      </div>
+      <button onclick="nextQBChapter()" ${ci===numChapters-1?'disabled':''}>&#8594;</button>
+    </div>
+    ${chTotal===0
+      ?`<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px">No questions set for this chapter.<br>Add them in the Revision tab.</div>`
+      :`<div class="qb-grid">${gridCells}</div>`}
+  </div>`;
+}
+
+function saveQBCell(sel){
+  const ci=parseInt(sel.dataset.chi);
+  const q=parseInt(sel.dataset.q);
+  const val=sel.value;
+  const qb=getQBData();
+  const key=`c${ci}q${q}`;
+  if(val) qb[key]=val; else delete qb[key];
+  save();
+  const cell=sel.closest('.qb-cell');
+  const opt=QB_OPT_MAP[val]||QB_OPT_MAP[''];
+  cell.style.background=opt.color;
+  cell.style.borderColor=val?opt.textColor+'66':'var(--border)';
+  const numEl=cell.querySelector('.qb-cell-num');
+  if(numEl)numEl.style.color=val?opt.textColor:'var(--muted)';
+  let tagEl=cell.querySelector('.qb-cell-tag');
+  if(val){
+    if(!tagEl){tagEl=document.createElement('div');tagEl.className='qb-cell-tag';cell.insertBefore(tagEl,sel);}
+    tagEl.style.background=opt.textColor+'20';
+    tagEl.style.color=opt.textColor;
+    tagEl.textContent=opt.label;
+  } else {
+    if(tagEl)tagEl.remove();
+  }
+}
+
+calYear=2025;calMonth=0;
+// Initial render is triggered by Firebase onValue callback above
+</script>
+</body>
+</html>
